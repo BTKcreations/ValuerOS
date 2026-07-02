@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = useCallback(async (token: string) => {
     try {
-      const res = await api.get<User>('/v1/auth/me', {
+      const res = await api.get<User>('/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setState({
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUser]);
 
   const login = useCallback(async (credentials: LoginRequest) => {
-    const res = await api.post<TokenResponse>('/v1/auth/login', credentials);
+    const res = await api.post<TokenResponse>('/auth/login', credentials);
     const { access_token } = res.data;
     localStorage.setItem('access_token', access_token);
     await fetchUser(access_token);
