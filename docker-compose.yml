@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  # --- PostgreSQL 16 + PostGIS ---
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: valueros-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-valueros}
+      POSTGRES_USER: ${POSTGRES_USER:-valueros}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-valueros_dev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-valueros} -d ${POSTGRES_DB:-valueros}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --- Redis 7 ---
+  redis:
+    image: redis:7-alpine
+    container_name: valueros-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # --- MinIO (S3-compatible object store) ---
+  minio:
+    image: minio/minio:latest
+    container_name: valueros-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # --- MinIO bucket provisioning (one-shot) ---
+  minio-create-bucket:
+    image: minio/mc:latest
+    container_name: valueros-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin};
+      mc mb local/${MINIO_BUCKET:-valueros} --ignore-existing;
+      mc anonymous set download local/${MINIO_BUCKET:-valueros};
+      echo 'MinIO bucket ready';
+      exit 0;
+      "
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

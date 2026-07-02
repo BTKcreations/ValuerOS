@@ -1,0 +1,10 @@
+[project]
+name = "valueros-backend"
+version = "0.1.0"
+description = "ValuerOS — AI-Powered Real Estate Valuation Automation"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

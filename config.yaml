@@ -1,0 +1,29 @@
+model_list:
+  # ---- Primary Model (The one VS Code will call) ----
+  - model_name: gemini-3.5-flash
+    litellm_params:
+      model: vertex_ai/gemini-3.5-flash
+      api_base: "https://aiplatform.googleapis.com/v1/projects/project-cd78fe8f-e078-4261-849/locations/global/publishers/google/models/gemini-3.5-flash"
+      max_tokens: 4096
+
+  # ---- Backup 1 ----
+  - model_name: gemini-3.1-pro
+    litellm_params:
+      model: vertex_ai/gemini-3.1-pro-preview
+      api_base: "https://aiplatform.googleapis.com/v1/projects/project-cd78fe8f-e078-4261-849/locations/global/publishers/google/models/gemini-3.1-pro-preview"
+      max_tokens: 4096
+
+  # ---- Backup 2 ----
+  - model_name: gemini-2.5-flash
+    litellm_params:
+      model: vertex_ai/gemini-2.5-flash
+      api_base: "https://aiplatform.googleapis.com/v1/projects/project-cd78fe8f-e078-4261-849/locations/global/publishers/google/models/gemini-2.5-flash"
+      max_tokens: 4096
+
+router_settings:
+  routing_strategy: "simple-shuffle"
+  cooldown_time: 30
+  allowed_fails: 1
+  fallbacks: [
+    {"gemini-3.5-flash": ["gemini-3.1-pro", "gemini-2.5-flash"]}
+  ]
