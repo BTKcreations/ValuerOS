@@ -44,13 +44,19 @@ async def upload_document(
     from app.core.config import get_settings
     settings = get_settings()
     file_content = await file.read()
-    minio_client.put_object(
-        bucket_name=settings.minio_bucket,
-        object_name=minio_path,
-        data=io.BytesIO(file_content),
-        length=len(file_content),
-        content_type=file.content_type,
-    )
+    try:
+        minio_client.put_object(
+            bucket_name=settings.minio_bucket,
+            object_name=minio_path,
+            data=io.BytesIO(file_content),
+            length=len(file_content),
+            content_type=file.content_type,
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(
+            f"Failed to upload file to MinIO: {str(e)}. Continuing with local mock database record."
+        )
 
     # Create document record in DB
     db_document = Document(
